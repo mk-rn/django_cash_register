@@ -1,6 +1,12 @@
 # django_cash_register
 ## django-cash-register is a Django app to manage product by cashier.
 
+### Installation
+
+```Bash
+pip install django-cash-register
+```
+
 ### Quick start
 
 1 Add "django_cash_register" to your INSTALLED_APPS settings like this:
