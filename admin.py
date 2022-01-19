@@ -24,7 +24,7 @@ class ProductHistoryAdmin(admin.ModelAdmin):
     list_display = fields
     list_display_links = fields[:3]
     list_filter = ['category', 'action', 'promotion_product', 'active', 'exists']
-    change_form_ = 'admin/main/change_form_object_tools.html'
+    change_form_ = 'admin/django_cash_register/change_form_object_tools.html'
 
     @classmethod
     def has_add_permission(cls, request):
