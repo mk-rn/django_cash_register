@@ -1,10 +1,10 @@
 from django.db import models
 from django.conf import settings
-from .validators import validate_not_minus
+from .validators import positive_number
 
 
 class Category(models.Model):
-    """Product category."""
+    """Product category model."""
 
     name = models.CharField(max_length=255, verbose_name='Name')
 
@@ -23,10 +23,10 @@ class AbstractProduct(models.Model):
     barcode = models.CharField(max_length=255, null=True, blank=True, verbose_name='Barcode')
     qrcode = models.CharField(max_length=500, null=True, blank=True, verbose_name='QR-code')
     category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.PROTECT, verbose_name='Category')
-    product_count = models.FloatField(validators=[validate_not_minus], verbose_name='Count')
-    purchase_price = models.FloatField(validators=[validate_not_minus], verbose_name='Purchase price')
-    price = models.FloatField(validators=[validate_not_minus], verbose_name='Price')
-    promotion_price = models.FloatField(validators=[validate_not_minus], null=True, blank=True,
+    product_count = models.FloatField(validators=[positive_number], verbose_name='Count')
+    purchase_price = models.FloatField(validators=[positive_number], verbose_name='Purchase price')
+    price = models.FloatField(validators=[positive_number], verbose_name='Price')
+    promotion_price = models.FloatField(validators=[positive_number], null=True, blank=True,
                                         verbose_name='Promotional price')
     promotion_product = models.BooleanField(default=False, verbose_name='Promotional product')
     image = models.ImageField(null=True, blank=True, verbose_name='Image')
@@ -40,13 +40,8 @@ class Product(AbstractProduct):
     """The product model is inherited from the 'AbstractProduct' abstract model.
     When you perform actions on the model, you interact with the 'ProductHistory' model."""
 
-    def save_history(self):
-        """Adding history on 'save'/'update' of the Product model."""
-
-        if not self.pk:
-            action_type = ActionType.objects.filter(name='Product addition').first()
-        else:
-            action_type = ActionType.objects.filter(name='Product change').first()
+    def add_history(self, action_type, exists):
+        """Adding history."""
 
         ProductHistory.objects.create(
             product=self,
@@ -61,29 +56,28 @@ class Product(AbstractProduct):
             promotion_price=self.promotion_price,
             image=self.image,
             active=self.active,
-            exists=True,
+            exists=exists,
         )
+
+    def removal_or_change_history(self):
+        """Adding history on 'save'/'update' of the Product model."""
+
+        if not self.pk:
+            action_type = ActionType.objects.filter(name='Product addition').first()
+        else:
+            action_type = ActionType.objects.filter(name='Product change').first()
+
+        super(Product, self).save()
+
+        return action_type
 
     def unexists_history(self):
         """Adding history on 'delete' of the Product model."""
 
         action_type = ActionType.objects.filter(name='Product removal').first()
 
-        ProductHistory.objects.create(
-            product=self,
-            action=action_type,
-            name=self.name,
-            barcode=self.barcode,
-            qrcode=self.qrcode,
-            category=self.category,
-            product_count=self.product_count,
-            purchase_price=self.purchase_price,
-            price=self.price,
-            promotion_product=self.promotion_product,
-            image=self.image,
-            active=self.active,
-            exists=False,
-        )
+        self.add_history(action_type, False)
+
         ProductHistory.objects.filter(product=self).update(exists=False)
 
     def __str__(self):
@@ -92,13 +86,15 @@ class Product(AbstractProduct):
     def save(self, **kwargs):
         """Redefined 'create'/'update' function. It then adds an entry to the 'ProductHistory' model."""
 
-        super(Product, self).save()
-        self.save_history()
+        action_type = self.removal_or_change_history()
+
+        self.add_history(action_type, True)
 
     def delete(self, *args, **kwargs):
         """Redefined 'delete' function. It then adds an entry to the 'ProductHistory' model."""
 
         self.unexists_history()
+
         super(Product, self).delete()
 
     class Meta:
@@ -131,7 +127,7 @@ class Cart(models.Model):
     basket_number = models.ForeignKey(CartList, on_delete=models.CASCADE, verbose_name='Cart number')
     product = models.ForeignKey(Product, limit_choices_to={'active': True}, on_delete=models.PROTECT,
                                 verbose_name='Product')
-    product_count = models.FloatField(validators=[validate_not_minus], verbose_name='Count')
+    product_count = models.FloatField(validators=[positive_number], verbose_name='Count')
 
     def __str__(self):
         return f'{self.product.price} / {self.product.name}'
@@ -164,10 +160,10 @@ class ProductHistory(models.Model):
     qrcode = models.CharField(max_length=500, null=True, blank=True, verbose_name='QR-code')
     category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.PROTECT, default=None,
                                  verbose_name='Category')
-    product_count = models.FloatField(validators=[validate_not_minus], verbose_name='Count')
-    purchase_price = models.FloatField(validators=[validate_not_minus], verbose_name='Purchase price')
-    price = models.FloatField(validators=[validate_not_minus], verbose_name='Price')
-    promotion_price = models.FloatField(validators=[validate_not_minus], null=True, blank=True,
+    product_count = models.FloatField(validators=[positive_number], verbose_name='Count')
+    purchase_price = models.FloatField(validators=[positive_number], verbose_name='Purchase price')
+    price = models.FloatField(validators=[positive_number], verbose_name='Price')
+    promotion_price = models.FloatField(validators=[positive_number], null=True, blank=True,
                                         verbose_name='Promotional price')
     promotion_product = models.BooleanField(default=False, verbose_name='Promotional product')
     image = models.ImageField(null=True, blank=True, verbose_name='Image')

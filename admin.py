@@ -38,7 +38,7 @@ class ProductHistoryAdmin(admin.ModelAdmin):
 
         return False
 
-    def change_view(self, request, object_id, extra_context=None):
+    def change_view(self, request, object_id, extra_context=None, **kwargs):
         """Customize add/edit form"""
 
         extra_context = extra_context or {}
@@ -55,6 +55,7 @@ class ProductHistoryAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -96,3 +97,33 @@ class ActionTypeAdmin(admin.ModelAdmin):
     fields = ['name']
 
     list_display = fields
+
+    @classmethod
+    def has_add_permission(cls, request):
+        """Remove add and save and add another button"""
+
+        return False
+
+    @classmethod
+    def has_change_permission(cls, request, obj=None):
+        """Remove change button"""
+
+        return False
+
+    def change_view(self, request, object_id, extra_context=None, **kwargs):
+        """Customize add/edit form"""
+
+        extra_context = extra_context or {}
+        extra_context['show_save_and_continue'] = False
+        extra_context['show_save'] = False
+        extra_context['show_delete'] = False
+        return super(ActionTypeAdmin, self).change_view(request, object_id, extra_context=extra_context)
+
+    def get_actions(self, request):
+        actions = super(ActionTypeAdmin, self).get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
+    def has_delete_permission(self, request, obj=None):
+        return False
