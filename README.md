@@ -23,3 +23,7 @@ INSTALLED_APPS = [
 ```
 
 3 Start the development server and visit http://127.0.0.1:8000/admin
+
+### Planed:
+
+<img width="1680" alt="template" src="https://user-images.githubusercontent.com/80222701/151180012-ce2ff4f8-c860-4c63-a6a0-e3fbf75cdec2.png">
