@@ -124,7 +124,7 @@ class CartList(models.Model):
 class Cart(models.Model):
     """Open cart model."""
 
-    basket_number = models.ForeignKey(CartList, on_delete=models.CASCADE, verbose_name='Cart number')
+    cart_number = models.ForeignKey(CartList, on_delete=models.CASCADE, verbose_name='Cart number')
     product = models.ForeignKey(Product, limit_choices_to={'active': True}, on_delete=models.PROTECT,
                                 verbose_name='Product')
     product_count = models.FloatField(validators=[positive_number], verbose_name='Count')

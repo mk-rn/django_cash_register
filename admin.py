@@ -83,10 +83,10 @@ class CartListAdmin(admin.ModelAdmin):
 class CartAdmin(admin.ModelAdmin):
     """Open carts"""
 
-    fields = ['basket_number', 'product', 'product_count']
+    fields = ['cart_number', 'product', 'product_count']
 
     list_display = fields
-    list_filter = ['basket_number']
+    list_filter = ['cart_number']
     search_fields = fields[1:]
 
 

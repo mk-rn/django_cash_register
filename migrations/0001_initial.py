@@ -105,7 +105,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('product_count', models.FloatField(validators=[django_cash_register.validators.positive_number], verbose_name='Count')),
-                ('basket_number', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='django_cash_register.cartlist', verbose_name='Cart number')),
+                ('cart_number', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='django_cash_register.cartlist', verbose_name='Cart number')),
                 ('product', models.ForeignKey(limit_choices_to={'active': True}, on_delete=django.db.models.deletion.PROTECT, to='django_cash_register.product', verbose_name='Product')),
             ],
             options={
