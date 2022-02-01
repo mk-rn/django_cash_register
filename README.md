@@ -42,3 +42,5 @@ urlpatterns = [
 ```
 
 6. Start the development server and visit http://127.0.0.1:8000 or http://127.0.0.1:8000/django_cash_register
+
+![application](https://user-images.githubusercontent.com/80222701/151967549-81e31bff-e9b3-48d4-926f-9f20a930449a.png)
