@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product, ProductHistory, CartList, Cart, ActionType
+from .models import Category, Product, ProductHistory, CartList, Cart,  ActionType, Unit, Currency
 
 
 @admin.register(Category)
@@ -11,19 +11,29 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = fields
 
 
+@admin.register(Unit)
+class UnitAdmin(admin.ModelAdmin):
+    """Units for products"""
+
+    fields = ['name']
+
+    list_display = fields
+
+
 @admin.register(ProductHistory)
 class ProductHistoryAdmin(admin.ModelAdmin):
     """History"""
 
     fields = ['product', 'action_date', 'action', 'name', 'image', 'barcode', 'qrcode', 'category', 'product_count',
-              'purchase_price', 'price', 'promotion_price', 'promotion_product', 'active', 'exists']
+              'unit', 'weight', 'purchase_price', 'price', 'promotion_price', 'promotion_product', 'active', 'exists']
 
     readonly_fields = fields
-    search_fields = ['action_date', 'name', 'image', 'barcode', 'qrcode', 'product_count', 'purchase_price', 'price',
-                     'promotion_price', 'promotion_product', 'active', 'exists']
+    search_fields = ['action_date', 'name', 'image', 'barcode', 'qrcode', 'category__name', 'product_count',
+                     'purchase_price', 'price', 'unit__name', 'weight', 'promotion_price', 'promotion_product',
+                     'active', 'exists']
     list_display = fields
     list_display_links = fields[:3]
-    list_filter = ['category', 'action', 'promotion_product', 'active', 'exists']
+    list_filter = ['category', 'action_date', 'action', 'promotion_product', 'unit', 'active', 'exists']
     change_form_ = 'admin/django_cash_register/change_form_object_tools.html'
 
     @classmethod
@@ -61,21 +71,21 @@ class ProductHistoryAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     """Products."""
 
-    fields = ['name', 'image', 'barcode', 'qrcode', 'category', 'product_count', 'purchase_price', 'price',
-              'promotion_price', 'promotion_product', 'active']
+    fields = ['name', 'image', 'barcode', 'qrcode', 'category', 'product_count', 'weight', 'unit', 'purchase_price',
+              'price', 'promotion_price', 'promotion_product', 'active']
 
     list_display = fields
-    list_filter = ['category', 'promotion_product', 'active']
-    search_fields = fields = ['name', 'image', 'barcode', 'qrcode', 'product_count', 'purchase_price', 'price',
-                              'promotion_price', 'promotion_product', 'active']
+    list_filter = ['category', 'promotion_product', 'unit', 'active']
+    search_fields = ['name', 'image', 'barcode', 'qrcode', 'category__name', 'product_count', 'unit__name', 'weight',
+                     'purchase_price', 'price', 'promotion_price', 'promotion_product', 'active']
 
 
 @admin.register(CartList)
 class CartListAdmin(admin.ModelAdmin):
     """Carts."""
-
-    fields = ['user']
+    fields = ['user', 'last_update']
     list_display = fields
+    readonly_fields = ['last_update']
     list_filter = fields
 
 
@@ -127,3 +137,12 @@ class ActionTypeAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Currency)
+class CurrencyAdmin(admin.ModelAdmin):
+    """Currencies"""
+
+    fields = ['value', 'float_right', 'active']
+
+    list_display = fields

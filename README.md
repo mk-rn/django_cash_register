@@ -9,21 +9,36 @@ pip install django-cash-register
 
 ### Quick start
 
-1 Add "django_cash_register" to your INSTALLED_APPS settings like this:
+1. Add "django_cash_register" to your INSTALLED_APPS settings like this:
 ```Python
 INSTALLED_APPS = [
     ...
     'django_cash_register',
 ]
 ```
-2 Execute command:
+2. If you want to use django_cash_register as main url. Add "DJANGO_CASH_REGISTER_MAIN_PAGE" to settings.py like this::
+```Python
+DJANGO_CASH_REGISTER_MAIN_PAGE = True
+```
 
+3. Add "STATICFILES_DIRS" to settings.py like this::
+```Python
+STATICFILES_DIRS = [
+    [BASE_DIR / 'static'][0]
+]
+```
+
+4. Add "django_cash_register.urls" to urls.py like this::
+```Python
+urlpatterns = [
+    ...
+    path('', include('django_cash_register.urls')),
+]
+```
+
+5. Execute command::
 ```Bash
 ./manage.py migrate
 ```
 
-3 Start the development server and visit http://127.0.0.1:8000/admin
-
-### Planed:
-
-<img width="1680" alt="template" src="https://user-images.githubusercontent.com/80222701/151180012-ce2ff4f8-c860-4c63-a6a0-e3fbf75cdec2.png">
+6. Start the development server and visit http://127.0.0.1:8000 or http://127.0.0.1:8000/django_cash_register
