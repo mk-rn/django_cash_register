@@ -1,3 +1,4 @@
+from django.contrib import auth
 from django.contrib.auth import authenticate, login
 from django.db.models import F
 from django.http import JsonResponse, HttpResponse
@@ -73,6 +74,11 @@ def getCartItems(request):
 
         return JsonResponse(response)
 
+    return redirect(cash_register_login_view)
+
+
+def cash_register_logout(request):
+    auth.logout(request)
     return redirect(cash_register_login_view)
 
 
