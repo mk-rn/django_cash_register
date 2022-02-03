@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 import django_cash_register.fields
+import django_cash_register.models
 import django_cash_register.validators
 
 
@@ -68,6 +69,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'currency',
                 'verbose_name_plural': 'Currencies',
             },
+            bases=(models.Model, django_cash_register.models.LastUpdateCartList),
         ),
         migrations.CreateModel(
             name='Product',
@@ -90,6 +92,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'product',
                 'verbose_name_plural': 'Products',
             },
+            bases=(models.Model, django_cash_register.models.AddProductHistory, django_cash_register.models.LastUpdateCartList),
         ),
         migrations.CreateModel(
             name='Unit',
@@ -115,12 +118,12 @@ class Migration(migrations.Migration):
                 ('price', models.FloatField(validators=[django_cash_register.validators.positive_number], verbose_name='Price')),
                 ('promotion_price', models.FloatField(blank=True, null=True, validators=[django_cash_register.validators.positive_number], verbose_name='Promotional price')),
                 ('promotion_product', models.BooleanField(default=False, verbose_name='Promotional product')),
-                ('image', models.ImageField(blank=True, null=True, upload_to='', verbose_name='Image')),
-                ('active', models.BooleanField(verbose_name='Active')),
-                ('exists', models.BooleanField(verbose_name='Available')),
+                ('image', models.ImageField(blank=True, null=True, upload_to='static/images/', verbose_name='Image')),
+                ('active', models.BooleanField(default=True, verbose_name='Active')),
                 ('action_date', models.DateTimeField(auto_now=True, verbose_name='Date')),
+                ('exists', models.BooleanField(verbose_name='Available')),
                 ('action', models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, to='django_cash_register.actiontype', verbose_name='Action')),
-                ('category', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.PROTECT, to='django_cash_register.category', verbose_name='Category')),
+                ('category', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='django_cash_register.category', verbose_name='Category')),
                 ('product', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='django_cash_register.product', verbose_name='Product')),
                 ('unit', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='django_cash_register.unit', verbose_name='Unit')),
             ],
@@ -158,6 +161,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'product',
                 'verbose_name_plural': 'Open carts',
             },
+            bases=(models.Model, django_cash_register.models.AddProductHistory),
         ),
         migrations.RunPython(create_actions),
         migrations.RunPython(create_currencies),

@@ -8,7 +8,9 @@ $(document).ready(function (){
                     last_update = response['new_update'];
 
                     $(".item-remove-all").remove();
-                    if (response['products'].length !== 0) {
+                    let prodcts_count = response['products'].length;
+
+                    if (prodcts_count !== 0) {
                         $(".header-container").append(
                             "<a href=\"\" class=\"item-remove-all\">" +
                             "<button class=\"items-remove-all btn-remove\">Remove all</button>" +
@@ -77,13 +79,21 @@ $(document).ready(function (){
                             }
                             $(".cart-container").append(temp);
                         }
-                        $(".subtotal-items").empty().append("<p>" + response['products'].length + " items</p>");
+                    } else {
+                        $(".cart-container").empty().append("<hr class=\"cart-item-separator\">");
+                    }
+                    if (prodcts_count == 1){
+                        item_s = 'item';
+                    } else if (prodcts_count == 0 || prodcts_count > 1){
+                        item_s = 'items';
+                    }
+                    
+                    $(".subtotal-items").empty().append("<p>" + response['products'].length + " "+item_s+"</p>");
 
-                        if (response['currency'][1] === true) {
-                            $(".total-amount-inner").empty().append(response['total_price'] + ".0" + response['currency'][0]);
-                        } else {
-                            $(".total-amount-inner").empty().append(response['currency'][0] + response['total_price'] + ".0");
-                        }
+                    if (response['currency'][1] === true) {
+                        $(".total-amount-inner").empty().append(response['total_price'] + ".0" + response['currency'][0]);
+                    } else {
+                        $(".total-amount-inner").empty().append(response['currency'][0] + response['total_price'] + ".0");
                     }
                 }
             },

@@ -7,10 +7,7 @@
                 <div class="cart-item">
                     <div class=item-image>
                         <img src="{% if product.product.image %}{{ product.product.image.url }}{% else %}static/images/defaul_image.png{% endif %}"
-                             alt="{{ product.product.name }}"
-                             loading="lazy"
-                             width="80"
-                             height="100"/>
+                             alt="{{ product.product.name }}" loading="lazy" width="80" height="100"/>
                     </div>
                     <div class="item-about">
                         <div class="item-title">
@@ -33,11 +30,7 @@
                     </div>
                     <div class="item-price">
                         <div class="item-amount">
-                            {% if currency.1 %}
-                                {{ product.total_price }}{{ currency.0 }}
-                            {% else %}
-                                {{ currency.0 }}{{ product.total_price }}
-                            {% endif %}
+                            {% if currency.1 %}{{ product.total_price }}{{ currency.0 }}{% else %}{{ currency.0 }}{{ product.total_price }}{% endif %}
                         </div>
                         <a href="" name="product_{{ product.pk }}" class="item-remove">
                             <button class="btn-remove">Remove</button>

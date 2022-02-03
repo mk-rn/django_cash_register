@@ -1,7 +1,105 @@
 from django.db import models
 from django.conf import settings
-from .validators import positive_number
+
 from .fields import UniqueBooleanField
+from .functions import get_call_info
+from .validators import positive_number
+
+
+
+class LastUpdateCartList():
+    def _last_update(self):
+        carts = CartList.objects.all()
+
+        for cart in carts:
+            cart.save()
+
+
+class AddProductHistory(LastUpdateCartList):
+    def _check_changes(self):
+        """Checks if the product has changed."""
+
+        befor_change = dict(Product.objects.filter(pk=self.pk)[0].__dict__)
+        after_change = dict(self.__dict__)
+        del befor_change['_state']
+        del after_change['_state']
+
+        return befor_change != after_change
+    
+    def _choice_action_type(self, func_name):
+        """Choice action type."""
+
+        if func_name == 'save':
+            exists = True
+
+            if not self.pk:
+                action_type = ActionType.objects.filter(name='Product addition').first()
+            else:                
+                if self._check_changes():              
+                    action_type = ActionType.objects.filter(name='Product change').first()
+                else:
+                    return False, False
+
+        elif func_name == 'delete':
+            exists = False
+            action_type = ActionType.objects.filter(name='Product removal').first()
+        
+        elif func_name == 'sell':
+            exists = True
+            action_type = ActionType.objects.filter(name='Sale of products').first()
+
+        return action_type, exists
+
+    def _create_history_object(self, action_type, exists):
+        """Creates a history object."""
+
+        if self.__class__.__name__ == 'Cart':
+            product = self.product
+        else:
+            product = self
+            
+        ProductHistory.objects.create(
+            product=product,
+            action=action_type,
+            name=product.name,
+            barcode=product.barcode,
+            qrcode=product.qrcode,
+            category=product.category,
+            product_count=product.product_count,
+            unit=product.unit,
+            weight=product.weight,
+            purchase_price=product.purchase_price,
+            price=product.price,
+            promotion_price=product.promotion_price,
+            image=product.image,
+            active=product.active,
+            exists=exists
+        )
+    
+    def _add_history(self, call_info):
+        """Adding history."""
+
+        super_func = f'super({call_info[1]}, self).{call_info[-1]}()'
+
+        if call_info[1] in ('Cart', 'Product'):
+            action_type, exists = self._choice_action_type(call_info[-1])
+
+            if call_info[1] == 'Product':
+                if call_info[-1] == 'save':
+                    if action_type:
+                        exec(super_func)
+                        self._create_history_object(action_type, exists)
+                        self._last_update()
+
+                if call_info[-1] == 'delete':
+                    self._create_history_object(action_type, exists)
+                    exec(super_func)
+                    self._last_update()
+
+            elif call_info[1] == 'Cart':
+                if call_info[-1] == 'sell':
+                    self._create_history_object(action_type, exists)
+                    self._last_update()
 
 
 class ActionType(models.Model):
@@ -65,68 +163,21 @@ class AbstractProduct(models.Model):
         abstract = True
 
 
-class Product(AbstractProduct):
+class Product(AbstractProduct, AddProductHistory, LastUpdateCartList):
     """The product model is inherited from the 'AbstractProduct' abstract model.
     When you perform actions on the model, you interact with the 'ProductHistory' model."""
 
-    def add_history(self, action_type, exists):
-        """Adding history."""
-
-        ProductHistory.objects.create(
-            product=self,
-            action=action_type,
-            name=self.name,
-            barcode=self.barcode,
-            qrcode=self.qrcode,
-            category=self.category,
-            product_count=self.product_count,
-            unit=self.unit,
-            weight=self.weight,
-            purchase_price=self.purchase_price,
-            price=self.price,
-            promotion_price=self.promotion_price,
-            image=self.image,
-            active=self.active,
-            exists=exists,
-        )
-
-        carts = CartList.objects.all()
-        for cart in carts:
-            cart.save()
-
-    def addition_or_change_history(self, curt_number=None, *args, **kwargs):
-        """Adding history on 'save'/'update' of the Product model."""
-
-        if not self.pk:
-            action_type = ActionType.objects.filter(name='Product addition').first()
-        else:
-            if curt_number:
-                action_type = ActionType.objects.filter(name='Sale of products').first()
-            else:
-                action_type = ActionType.objects.filter(name='Product change').first()
-
-        super().save(*args, **kwargs)
-
-        return action_type
-
-    def unexists_history(self):
-        """Adding history on 'delete' of the Product model."""
-
-        action_type = ActionType.objects.filter(name='Product removal').first()
-        self.add_history(action_type, False)
-        ProductHistory.objects.filter(product=self).update(exists=False)
-
-    def save(self, cart_number=None, *args, **kwargs):
+    def save(self, sell=False, *args, **kwargs):
         """Redefined 'create'/'update' function. It then adds an entry to the 'ProductHistory' model."""
-
-        action_type = self.addition_or_change_history(cart_number)
-        self.add_history(action_type, True)
+        if not sell:
+            self._add_history(get_call_info(self))
+        else:
+            super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         """Redefined 'delete' function. It then adds an entry to the 'ProductHistory' model."""
 
-        self.unexists_history()
-        super().delete(*args, **kwargs)
+        self._add_history(get_call_info(self))
 
     def __str__(self):
         return f'[{self.pk}] {self.name}'
@@ -156,7 +207,7 @@ class CartList(models.Model):
         verbose_name_plural = 'Cart list'
 
 
-class Cart(models.Model):
+class Cart(models.Model, AddProductHistory):
     """Open cart model."""
 
     cart_number = models.ForeignKey(CartList, on_delete=models.CASCADE, verbose_name='Cart number')
@@ -164,37 +215,66 @@ class Cart(models.Model):
                                 verbose_name='Product')
     product_count = models.FloatField(validators=[positive_number], verbose_name='Count')
 
+    @staticmethod
+    def _add_test_product():
+        """Adding a test product to the cart."""
+
+        cart_number = CartList.objects.first()
+        product = Product.objects.last()
+        product_count = 1
+        Cart.objects.create(cart_number=cart_number, product=product, product_count=product_count)
+
+    @staticmethod
+    def sell_all(cart_number):
+        """Sale of all products."""
+
+        carts = Cart.objects.filter(cart_number=cart_number)
+        for cart in carts:
+            cart.sell()
+    
+    @staticmethod
+    def delete_all(cart_number):
+        """Delete all products."""
+
+        Cart.objects.filter(cart_number=cart_number).delete()
+
     def product_count_plus(self, *args, **kwargs):
         """Adding +1 to product cart."""
 
         self.product_count += 1
         super().save(*args, **kwargs)
+        self._last_update()
 
     def product_count_minus(self, *args, **kwargs):
         """Removing -1 from cart."""
 
         self.product_count -= 1
         super().save(*args, **kwargs)
-
+        self._last_update()
+        
     def sell(self, *args, **kwargs):
-        """sale of products."""
+        """Sale of products."""
 
         self.product.product_count -= self.product_count
-        self.product.save(cart_number=True)
-        cart = self.cart_number.pk
+        self.product.save(True)
+        self._add_history(get_call_info(self))
         super().delete(*args, **kwargs)
+        self._last_update()
 
     def save(self, *args, **kwargs):
-        """Redefined 'create'/'update' function. It then updates the 'last_update' in the 'CartList' model."""
-
-        super().save(*args, **kwargs)
-        self.cart_number.save()
+        """Redefined 'create'/'update' function. It then updates the 'last_last_update' in the 'CartList' model."""
+        
+        product = Cart.objects.filter(pk=self.product.pk).first()
+        
+        if product is None:
+            super().save(*args, **kwargs)
+            self._last_update()
 
     def delete(self,  *args, **kwargs):
-        """Redefined 'delete' function. It then updates the 'last_update' in the 'CartList' model."""
+        """Redefined 'delete' function. It then updates the 'last_last_update' in the 'CartList' model."""
 
         super().delete(*args, **kwargs)
-        self.cart_number.save()
+        self._last_update()
 
     def __str__(self):
         return f'{self.product.price} / {self.product.name}'
@@ -204,38 +284,26 @@ class Cart(models.Model):
         verbose_name_plural = 'Open carts'
 
 
-class ProductHistory(models.Model):
+class ProductHistory(AbstractProduct):
     """Product history model."""
 
     product = models.ForeignKey(Product, null=True, on_delete=models.SET_NULL, verbose_name='Product')
     action = models.ForeignKey(ActionType, null=True, on_delete=models.PROTECT, verbose_name='Action')
-    name = models.CharField(max_length=255, verbose_name='Name')
-    barcode = models.CharField(max_length=255, null=True, blank=True, verbose_name='Barcode')
-    qrcode = models.CharField(max_length=500, null=True, blank=True, verbose_name='QR-code')
-    category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.PROTECT, default=None,
-                                 verbose_name='Category')
-    product_count = models.FloatField(validators=[positive_number], verbose_name='Count')
-    unit = models.ForeignKey(Unit, on_delete=models.PROTECT, verbose_name='Unit')
-    weight = models.FloatField(validators=[positive_number], verbose_name='Weight')
-    purchase_price = models.FloatField(validators=[positive_number], verbose_name='Purchase price')
-    price = models.FloatField(validators=[positive_number], verbose_name='Price')
-    promotion_price = models.FloatField(validators=[positive_number], null=True, blank=True,
-                                        verbose_name='Promotional price')
-    promotion_product = models.BooleanField(default=False, verbose_name='Promotional product')
-    image = models.ImageField(null=True, blank=True, verbose_name='Image')
-    active = models.BooleanField(verbose_name='Active')
-    exists = models.BooleanField(verbose_name='Available')
     action_date = models.DateTimeField(auto_now=True, verbose_name='Date')
+    exists = models.BooleanField(verbose_name='Available')
 
     def __str__(self):
-        return f'{self.product.name}'
+        if self.product is None:
+            return f'{self.product}'
+        else:
+            return f'{self.product.name}'
 
     class Meta:
         verbose_name = 'history'
         verbose_name_plural = 'History'
 
 
-class Currency(models.Model):
+class Currency(models.Model, LastUpdateCartList):
     """Currency model."""
 
     value = models.CharField(max_length=3, verbose_name='Currency')
@@ -243,20 +311,16 @@ class Currency(models.Model):
     active = UniqueBooleanField(default=True, verbose_name='Active')
 
     def save(self, *args, **kwargs):
-        """Redefined 'create'/'update' function. It then updates the 'last_update' in the 'CartList' model."""
+        """Redefined 'create'/'update' function. It then updates the 'last_last_update' in the 'CartList' model."""
 
         super().save(*args, **kwargs)
-        carts = CartList.objects.all()
-        for cart in carts:
-            cart.save()
+        self._last_update()
 
     def delete(self, *args, **kwargs):
-        """Redefined 'delete' function. It then updates the 'last_update' in the 'CartList' model."""
+        """Redefined 'delete' function. It then updates the 'last_last_update' in the 'CartList' model."""
 
         super().delete(*args, **kwargs)
-        carts = CartList.objects.all()
-        for cart in carts:
-            cart.save()
+        self._last_update()
 
     def __str__(self):
         return f'{self.value}'

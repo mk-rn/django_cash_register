@@ -1,13 +1,11 @@
 from django.contrib import auth
 from django.contrib.auth import authenticate, login
 from django.db.models import F
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from .forms import LoginForm
-from .models import CartList, Cart, Currency, Product, ProductHistory
-
-from time import sleep
+from .models import CartList, Cart, Currency, Product
 
 
 def cartBtns(request):
@@ -31,16 +29,11 @@ def cartBtns(request):
             if operaton == 'item_remove':
                 cart_product.delete()
 
-        if operaton in ('item_remove_all', 'sell'):
-            cart_products = Cart.objects.filter(cart_number=cart_number)
-            if cart_products:
-                if operaton == 'sell':
-                    for product in cart_products:
-                        product.sell()
-
-                    return redirect(cash_register_view)
-
-                cart_products.delete()
+        if operaton == 'item_remove_all':
+            Cart.delete_all(cart_number)
+        
+        if operaton == 'sell':
+            Cart.sell_all(cart_number)
 
     return redirect(cash_register_view)
 

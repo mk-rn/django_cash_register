@@ -5,8 +5,6 @@
 </head>
 <body>
     <div class="body-container">{% block content %}{% endblock %}</div>
-    {% if request.user.is_authenticated %}
-    {% include "django_cash_register/scripts.html" %}
-    {% endif %}
+    {% if request.user.is_authenticated %}{% include "django_cash_register/scripts.html" %}{% endif %}
 </body>
 </html>

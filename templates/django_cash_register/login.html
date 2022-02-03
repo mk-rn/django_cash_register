@@ -13,10 +13,7 @@
             {{ form.password }}
             {{ form.password.errors }}
             {% csrf_token %}
-            {% if context %}
-                <br>
-                <p>{{ context }}</p>
-            {% endif %}
+            {% if context %}<br><p>{{ context }}</p>{% endif %}
             <br>
             <input type="submit" value="Log-in" class="login-btn">
         </form>
