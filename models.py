@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 
 from .fields import UniqueBooleanField
@@ -266,7 +267,7 @@ class Cart(models.Model, AddProductHistory):
         
         product = Cart.objects.filter(pk=self.product.pk).first()
         
-        if product is None:
+        if not Cart.objects.filter(~Q(pk=self.product.pk)):
             super().save(*args, **kwargs)
             self._last_update()
 
